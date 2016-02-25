@@ -1,0 +1,13 @@
+[Unit]
+Description=Docker No volumes authZ Plugin
+Documentation=man:docker-novolume-plugin(8)
+Before=docker.service
+After=network.target docker-novolume-plugin.socket
+Requires=docker-novolume-plugin.socket docker.service
+
+[Service]
+# might need to set flags...
+ExecStart=/usr/lib/docker/docker-novolume-plugin
+
+[Install]
+WantedBy=multi-user.target
