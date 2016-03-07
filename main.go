@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultDockerHost = "unix:///var/run/docker.sock"
-	pluginSocket      = "/run/docker/plugins/docker-novolume-plugin.sock"
+	pluginSocket      = "/run/docker/plugins/rhel-push-plugin.sock"
 )
 
 var (
@@ -22,13 +22,13 @@ var (
 func main() {
 	flag.Parse()
 
-	novolume, err := newPlugin(*flDockerHost)
+	rhelpush, err := newPlugin(*flDockerHost)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
 	// TODO(runcom): parametrize this when the bin starts
-	h := authorization.NewHandler(novolume)
+	h := authorization.NewHandler(rhelpush)
 
 	if err = h.ServeUnix("root", pluginSocket); err != nil {
 		logrus.Fatal(err)

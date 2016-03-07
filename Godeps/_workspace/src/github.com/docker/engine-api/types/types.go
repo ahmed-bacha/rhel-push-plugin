@@ -237,6 +237,13 @@ type Info struct {
 	ServerVersion      string
 	ClusterStore       string
 	ClusterAdvertise   string
+	Registries         []Registry
+}
+
+// Registry holds information about a specific registry
+type Registry struct {
+	Name   string
+	Secure bool
 }
 
 // PluginsInfo is temp struct holds Plugins name

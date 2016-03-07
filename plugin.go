@@ -1,78 +1,103 @@
 package main
 
+// TODO(runcom): fix the vendors for 1.10.x, 1.11.x etc etc - and tag a release of rhel-push-plugin
+
 import (
-	"bytes"
-	"encoding/json"
+	"fmt"
 	"regexp"
+	"strings"
 
 	dockerapi "github.com/docker/docker/api"
+	"github.com/docker/docker/reference"
 	dockerclient "github.com/docker/engine-api/client"
 	"github.com/docker/go-plugins-helpers/authorization"
 )
 
-func newPlugin(dockerHost string) (*novolume, error) {
+func newPlugin(dockerHost string) (*rhelpush, error) {
 	client, err := dockerclient.NewClient(dockerHost, dockerapi.DefaultVersion.String(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &novolume{client: client}, nil
+	return &rhelpush{client: client, dockerHost: dockerHost}, nil
 }
 
 var (
-	startRegExp = regexp.MustCompile(`/containers/(.*)/start$`)
+	pushRegExp = regexp.MustCompile(`/images/(.*)/push\?tag=(.*)$`)
 )
 
-type novolume struct {
-	client *dockerclient.Client
+type rhelpush struct {
+	client     *dockerclient.Client
+	dockerHost string
 }
 
-func (p *novolume) AuthZReq(req authorization.Request) authorization.Response {
-	if req.RequestMethod == "POST" && startRegExp.MatchString(req.RequestURI) {
-		// this is deprecated in docker, remove once hostConfig is dropped to
-		// being available at start time
-		if req.RequestBody != nil {
-			type vfrom struct {
-				VolumesFrom []string
-			}
-			vf := &vfrom{}
-			if err := json.NewDecoder(bytes.NewReader(req.RequestBody)).Decode(vf); err != nil {
-				return authorization.Response{Err: err.Error()}
-			}
-			if len(vf.VolumesFrom) > 0 {
-				goto noallow
-			}
-		}
-		res := startRegExp.FindStringSubmatch(req.RequestURI)
-		if len(res) < 1 {
-			return authorization.Response{Err: "unable to find container name"}
+func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
+	if req.RequestMethod == "POST" && pushRegExp.MatchString(req.RequestURI) {
+		res := pushRegExp.FindStringSubmatch(req.RequestURI)
+		if len(res) < 2 {
+			return authorization.Response{Err: "unable to find repository name and reference"}
 		}
 
-		container, err := p.client.ContainerInspect(res[1])
+		repoName := res[1]
+		if tag := res[2]; tag != "" {
+			repoName = fmt.Sprintf("%s:%s", repoName, tag)
+		}
+		RHELBased, err := p.isRHELBased(repoName)
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
 		}
-		image, _, err := p.client.ImageInspectWithRaw(container.Image, false)
-		if err != nil {
-			return authorization.Response{Err: err.Error()}
+		if !RHELBased {
+			goto allow
 		}
-		if len(image.Config.Volumes) > 0 {
+
+		if strings.HasPrefix(repoName, "docker.io/") {
 			goto noallow
 		}
-		for _, m := range container.Mounts {
-			if m.Driver != "" {
-				goto noallow
+
+		ref, err := reference.ParseNamed(repoName)
+		if err != nil {
+			return authorization.Response{Err: err.Error()}
+		}
+		if ref.Hostname() == "docker.io" {
+			registries, err := p.getAdditionalDockerRegistries()
+			if err != nil {
+				return authorization.Response{Err: err.Error()}
+			}
+			if len(registries) != 0 {
+				if registries[0] == "docker.io" {
+					goto noallow
+				}
 			}
 		}
-		if len(container.HostConfig.VolumesFrom) > 0 {
-			goto noallow
-		}
 	}
+allow:
 	return authorization.Response{Allow: true}
 
 noallow:
-	return authorization.Response{Msg: "volumes are not allowed"}
+	return authorization.Response{Msg: "RHEL based images are not allowed to be pushed to docker.io"}
 }
 
-func (p *novolume) AuthZRes(req authorization.Request) authorization.Response {
+func (p *rhelpush) AuthZRes(req authorization.Request) authorization.Response {
 	return authorization.Response{Allow: true}
+}
+
+// TODO(runcom): official engine-api client doesn't have Registries
+// hacked into Godeps/_workspace/src/github.com/docker/engine-api/types/types.go
+func (p *rhelpush) getAdditionalDockerRegistries() ([]string, error) {
+	i, err := p.client.Info()
+	if err != nil {
+		return nil, err
+	}
+	regs := []string{}
+	for _, r := range i.Registries {
+		regs = append(regs, r.Name)
+	}
+	return regs, nil
+}
+
+func (p *rhelpush) isRHELBased(image string) (bool, error) {
+	image, _, err := p.client.ImageInspectWithRaw(repoName, false)
+	if err != nil {
+		return false, err
+	}
+	_ = image
 }
