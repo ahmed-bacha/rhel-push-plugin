@@ -39,7 +39,7 @@ func newPlugin(dockerHost, certPath string, tlsVerify bool) (*rhelpush, error) {
 }
 
 var (
-	pushRegExp = regexp.MustCompile(`/images/(.*)/push\?tag=(.*)$`)
+	pushRegExp = regexp.MustCompile(`/images/(.*)/push(\?tag=(.*))?$`)
 )
 
 const (
@@ -54,12 +54,12 @@ type rhelpush struct {
 func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 	if req.RequestMethod == "POST" && pushRegExp.MatchString(req.RequestURI) {
 		res := pushRegExp.FindStringSubmatch(req.RequestURI)
-		if len(res) < 2 {
+		if len(res) < 3 {
 			return authorization.Response{Err: "unable to find repository name and reference"}
 		}
 
 		repoName := res[1]
-		if tag := res[2]; tag != "" {
+		if tag := res[3]; tag != "" {
 			repoName = fmt.Sprintf("%s:%s", repoName, tag)
 		}
 		RHELBased, err := p.isRHELBased(repoName)
@@ -79,6 +79,7 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 			return authorization.Response{Err: err.Error()}
 		}
 		if ref.Hostname() == "docker.io" {
+			// this is the projectatomic/docker case
 			registries, err := p.getAdditionalDockerRegistries()
 			if err != nil {
 				return authorization.Response{Err: err.Error()}
@@ -88,6 +89,7 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 					goto noallow
 				}
 			}
+			// this is the official docker binary case
 			goto noallow
 		}
 	}
