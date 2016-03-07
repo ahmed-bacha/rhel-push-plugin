@@ -107,17 +107,14 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		// This `if` will match pushing *unqualified* images to the default registry
 		// with the projectatomic/docker codebase and the docker official binary.
 		if ref.Hostname() == "docker.io" {
-			// We have a projectatomic/docker implementation: retrieving a list of configured
-			// registries with the --add-registry flag
 			registries, err := p.getAdditionalDockerRegistries()
 			if err != nil {
 				return authorization.Response{Err: err.Error()}
 			}
 			if len(registries) != 0 {
 				// We have a projectatomic/docker implementation: pushing without specifying a host name
-				// automatically uses the first just discovered registry
-				// If the first registry configured in the daemon is docker.io
-				// blocks.
+				// automatically uses the first just discovered registry configured with --add-registry
+				// If the first registry configured in the daemon is docker.io blocks.
 				if registries[0] == "docker.io" {
 					goto noallow
 				}
