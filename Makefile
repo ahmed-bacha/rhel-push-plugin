@@ -9,19 +9,19 @@ MANINSTALLDIR=${PREFIX}/share/man
 all: man binary
 
 binary:
-	go build  -o docker-novolume-plugin .
+	go build  -o rhel-push-plugin .
 
 man:
-	go-md2man -in man/docker-novolume-plugin.8.md -out docker-novolume-plugin.8
+	go-md2man -in man/rhel-push-plugin.8.md -out rhel-push-plugin.8
 
 install:
 	install -d -m 0755 ${LIBDIR}
-	install -m 644 systemd/docker-novolume-plugin.service ${LIBDIR}
+	install -m 644 systemd/rhel-push-plugin.service ${LIBDIR}
 	install -d -m 0755 ${LIBDIR}
-	install -m 644 systemd/docker-novolume-plugin.socket ${LIBDIR}
+	install -m 644 systemd/rhel-push-plugin.socket ${LIBDIR}
 	install -d -m 0755 ${BINDIR}
-	install -m 755 docker-novolume-plugin ${BINDIR}
-	install -m 644 docker-novolume-plugin.8 ${MANINSTALLDIR}/man8/
+	install -m 755 rhel-push-plugin ${BINDIR}
+	install -m 644 rhel-push-plugin.8 ${MANINSTALLDIR}/man8/
 
 clean:
-	rm -f docker-novolume-plugin
+	rm -f rhel-push-plugin

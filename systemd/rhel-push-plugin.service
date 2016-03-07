@@ -1,0 +1,13 @@
+[Unit]
+Description=Docker Block RHEL push plugin authZ Plugin
+Documentation=man:rhel-push-plugin(8)
+Before=docker.service
+After=network.target rhel-push-plugin.socket
+Requires=rhel-push-plugin.socket docker.service
+
+[Service]
+# might need to set flags...
+ExecStart=/usr/lib/docker/rhel-push-plugin
+
+[Install]
+WantedBy=multi-user.target

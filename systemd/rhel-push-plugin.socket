@@ -1,0 +1,9 @@
+[Unit]
+Description=Docker Block RHEL push plugin Socket for the API
+Documentation=man:rhel-push-plugin(8)
+
+[Socket]
+ListenStream=/run/docker/plugins/rhel-push-plugin.sock
+
+[Install]
+WantedBy=sockets.target

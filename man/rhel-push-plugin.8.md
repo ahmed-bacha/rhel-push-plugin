@@ -1,21 +1,19 @@
-.TH "DOCKER-NOVOLUME-PLUGIN" "1" "" "Antonio Murdaca" "FEBRUARY 2016"  ""
+% RHEL-PUSH-PLUGIN(8)
+% Antonio Murdaca
+% MARCH 2016
+# NAME
+rhel-push-plugin - Blocks RHEL content push to docker.io
 
+# SYNOPSIS
+**rhel-push-plugin**
+[**--host**=[=*unix:///var/run/docker.sock*]]
 
-.SH NAME
-.PP
-docker\-novolume\-plugin \- Blocks self provisioned volumes
+# DESCRIPTION
 
+TODO
 
-.SH SYNOPSIS
-.PP
-\fBdocker\-novolume\-plugin\fP
-[\fB\-\-host\fP=[=\fIunix:///var/run/docker.sock\fP]]
-
-
-.SH DESCRIPTION
-.PP
 When a volume in provisioned via the VOLUME instruction in a Dockerfile or via
-docker run \-v volumename, host's storage space is used. This could lead to an
+docker run -v volumename, host's storage space is used. This could lead to an
 unexpected out of space issue which could bring down everything. There are situations
 where this is not an accepted behavior. PAAS, for instance, can't allow their users
 to run their own images without the risk of filling the entire storage space on a server.
@@ -23,28 +21,16 @@ One solution to this is to deny users from running images with volumes. This way
 only storage a user gets can be limited and PAAS can assign quota to it.
 This plugin solves this issue by disallowing starting a container with local volumes defined. In particular, the plugin will block docker run with:
 
-.PP
-.RS
+    --volumes-from
+    images that have VOLUME(s) defined
+    volumes early provisioned with docker volume command
 
-.nf
-\-\-volumes\-from
-images that have VOLUME(s) defined
-volumes early provisioned with docker volume command
-
-.fi
-.RE
-
-.PP
 The only thing allowed will be just bind mounts.
 
+# OPTIONS
 
-.SH OPTIONS
-.PP
-\fB\-\-host\fP="unix:///var/run/docker.sock"
+**--host**="unix:///var/run/docker.sock"
   Specifies the host where to contact the docker daemon.
 
-
-.SH AUTHORS
-.PP
-Antonio Murdaca 
-\[la]runcom@redhat.com\[ra]
+# AUTHORS
+Antonio Murdaca <runcom@redhat.com>
