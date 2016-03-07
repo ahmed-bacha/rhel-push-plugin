@@ -86,6 +86,7 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 				if registries[0] == "docker.io" {
 					goto noallow
 				}
+				goto allow
 			}
 			// this is the official docker binary case
 			goto noallow
