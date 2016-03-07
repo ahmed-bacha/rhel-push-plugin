@@ -1,7 +1,5 @@
 package main
 
-// TODO(runcom): fix the vendors for 1.10.x, 1.11.x etc etc - and tag a release of rhel-push-plugin
-
 import (
 	"fmt"
 	"regexp"
