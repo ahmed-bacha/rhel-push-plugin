@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	dockerapi "github.com/docker/docker/api"
 	"github.com/docker/docker/reference"
@@ -70,10 +69,6 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 			goto allow
 		}
 
-		if strings.HasPrefix(repoName, "docker.io/") {
-			goto noallow
-		}
-
 		ref, err := reference.ParseNamed(repoName)
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
@@ -85,6 +80,9 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 				return authorization.Response{Err: err.Error()}
 			}
 			if len(registries) != 0 {
+				// if the first registry configured in the daemon is docker.io
+				// blocks. Otherwise let the user push to its own first registry
+				// configured (cause push do not fall back as pull in our docker fork)
 				if registries[0] == "docker.io" {
 					goto noallow
 				}
