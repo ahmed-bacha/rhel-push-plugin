@@ -39,36 +39,32 @@ under `systemd/` (or installing via `make install`). This ensures the plugin get
 if it goes down for any reason.
 How to test
 -
-Prerequisites (replace `runcom` with your own Docker Hub username):
-```
-$ sudo dnf install rhel-push-plugin
-$ sudo systemctl start rhel-push-plugin
-# edit /etc/sysconfig/docker and append --authorization-plugin=rhel-push-plugin to OPTIONS
-$ sudo systemctl restart docker
+Given the plugin is enabled:
 
-$ docker build -t runcom/testrhelbased - <<EOF
-FROM registry.access.redhat.com/rhel7
-EOF
-$ docker tag runcom/testrhelbased docker.io/runcom/testrhelbased
-$ docker pull busybox
-$ docker tag busybox runcom/busybox
-$ docker tag runcom/busybox docker.io/runcom/busybox
-$ docker login -u runcom
-```
-Without any `--add-regsitry` configured:
-```
-$ docker push runcom/testrhelbased # blocked
-$ docker push docker.io/runcom/testrhelbased # blocked
-$ docker push runcom/busybox # works
-$ docker push docker.io/runcom/busybox # works
-```
-With `--add-registry=yourownadditionalregistry:5000`:
-```
-$ docker push runcom/testrhelbased # works
-$ docker push docker.io/runcom/testrhelbased # blocked
-$ docker push runcom/busybox # works
-$ docker push docker.io/runcom/busybox # works
-```
+- case docker/docker daemon
+
+  - if the image is not rhel based and qualified-> allow pushing
+  - if the image is not rhel based and unqualified -> allow pushing
+  - if the image is rhel based and qualified with docker.io -> disallow pushing
+  - if the image is rhel based and qualified with myregistry.com:5000 -> allow pushing
+  - if the image is rhel based and unqualified -> disallow pushing
+
+- case projectatomic/docker daemon with additional registries REST route and 1 additional registry configured at myregistry.com:5000
+
+if the image is not rhel based and qualified-> allow pushing
+if the image is not rhel based and unqualified -> allow pushing (it goes to myregistry.com:5000)
+if the image is rhel based and qualified with docker.io -> disallow pushing **
+if the image is rhel based and qualified with myregistry.com:5000 -> allow pushing
+if the image is rhel based and unqualified -> allow pushing (it goes to myregistry.com:5000)
+
+- case projectatomic/docker daemon with additional registries REST route and NO additional registry configured which implies registries[0] == docker.io
+case docker/docker daemon
+
+if the image is not rhel based and qualified-> allow pushing
+if the image is not rhel based and unqualified -> allow pushing
+if the image is rhel based and qualified with docker.io -> disallow pushing
+if the image is rhel based and qualified with myregistry.com:5000 -> allow pushing
+if the image is rhel based and unqualified -> disallow pushing
 License
 -
 MIT
