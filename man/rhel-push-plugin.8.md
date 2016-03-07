@@ -6,7 +6,9 @@ rhel-push-plugin - Blocks RHEL content push to docker.io
 
 # SYNOPSIS
 **rhel-push-plugin**
+[**--cert-path**=[=*""*]]
 [**--host**=[=*unix:///var/run/docker.sock*]]
+[**--tls-verify**=[=*false*]]
 
 # DESCRIPTION
 
