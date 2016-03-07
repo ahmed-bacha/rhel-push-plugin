@@ -11,6 +11,7 @@ import (
 	dockerapi "github.com/docker/docker/api"
 	"github.com/docker/docker/reference"
 	dockerclient "github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 	"github.com/docker/go-plugins-helpers/authorization"
 )
 
@@ -59,17 +60,28 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		}
 
 		repoName := res[1]
-		//imgListOptions := types.ImageListOptions{}
-		//imgListOptions.MatchName = repoName
-		//images, err := p.client.ImageList(imgListOptions)
-		//if err != nil {
-		//return authorization.Response{Err: err.Error()}
-		//}
-		// TODO(runcom): if any of the images is rhel based block the push w/o tag
-		// and tell the user he needs to provide a tag
-		if tag := res[3]; tag != "" {
-			repoName = fmt.Sprintf("%s:%s", repoName, tag)
+		tag := res[3]
+
+		if tag == "" {
+			imgListOptions := types.ImageListOptions{}
+			imgListOptions.MatchName = repoName
+			images, err := p.client.ImageList(imgListOptions)
+			if err != nil {
+				return authorization.Response{Err: err.Error()}
+			}
+			for _, img := range images {
+				rb, err := p.isRHELBased(img.ID)
+				if err != nil {
+					return authorization.Response{Err: err.Error()}
+				}
+				if rb {
+					return authorization.Response{Err: fmt.Sprintf("%s is RHEL based (refers to: %s), please push your image using a tag directly to avoid pushing the RHEL based image", img.ID, strings.Join(img.RepoTags, ", "))}
+				}
+			}
+			goto allow
 		}
+
+		repoName = fmt.Sprintf("%s:%s", repoName, tag)
 		RHELBased, err := p.isRHELBased(repoName)
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
