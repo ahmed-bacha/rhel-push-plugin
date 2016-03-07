@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	dockerapi "github.com/docker/docker/api"
 	"github.com/docker/docker/reference"
@@ -58,6 +59,14 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		}
 
 		repoName := res[1]
+		//imgListOptions := types.ImageListOptions{}
+		//imgListOptions.MatchName = repoName
+		//images, err := p.client.ImageList(imgListOptions)
+		//if err != nil {
+		//return authorization.Response{Err: err.Error()}
+		//}
+		// TODO(runcom): if any of the images is rhel based block the push w/o tag
+		// and tell the user he needs to provide a tag
 		if tag := res[3]; tag != "" {
 			repoName = fmt.Sprintf("%s:%s", repoName, tag)
 		}
@@ -69,23 +78,33 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 			goto allow
 		}
 
+		// any direct push to docker.io/ with a qualified image is rejected
+		if strings.HasPrefix(repoName, "docker.io/") {
+			goto noallow
+		}
+
 		ref, err := reference.ParseNamed(repoName)
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
 		}
+		// ref.Hostname() uses the docker/docker/reference implementation, which automatically
+		// maps unspecified hostname to reference.DefaultHostname. So this `if` will match
+		// both explicitly pushing images to `docker.io` and pushing images to the default registry
+		// with the projectatomic/docker codebase.
 		if ref.Hostname() == "docker.io" {
-			// this is the projectatomic/docker case
+			// We have a projectatomic/docker implementation: pushing without specifying a host name
+			// automatically uses the first just discovered registry
 			registries, err := p.getAdditionalDockerRegistries()
 			if err != nil {
 				return authorization.Response{Err: err.Error()}
 			}
 			if len(registries) != 0 {
 				// if the first registry configured in the daemon is docker.io
-				// blocks. Otherwise let the user push to its own first registry
-				// configured (cause push do not fall back as pull in our docker fork)
+				// blocks.
 				if registries[0] == "docker.io" {
 					goto noallow
 				}
+				// otherwise let the user push rhel content to his first configured registry.
 				goto allow
 			}
 			// this is the official docker binary case
