@@ -15,8 +15,12 @@ users to violate the RH subscription agreement.
 
 # OPTIONS
 
+**--cert-path**=""
+  Certificates path to connect to Docker (cert.pem, key.pem)
 **--host**="unix:///var/run/docker.sock"
   Specifies the host where to contact the docker daemon.
+**--tls-verify**="false"
+  Whether to verify certificates or not
 
 # AUTHORS
 Antonio Murdaca <runcom@redhat.com>

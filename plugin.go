@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -11,12 +14,28 @@ import (
 	"github.com/docker/go-plugins-helpers/authorization"
 )
 
-func newPlugin(dockerHost string) (*rhelpush, error) {
-	client, err := dockerclient.NewClient(dockerHost, dockerapi.DefaultVersion.String(), nil, nil)
+func newPlugin(dockerHost, certPath string, tlsVerify bool) (*rhelpush, error) {
+	var transport *http.Transport
+	if certPath != "" {
+		tlsc := &tls.Config{}
+
+		cert, err := tls.LoadX509KeyPair(filepath.Join(certPath, "cert.pem"), filepath.Join(certPath, "key.pem"))
+		if err != nil {
+			return nil, fmt.Errorf("Error loading x509 key pair: %s", err)
+		}
+
+		tlsc.Certificates = append(tlsc.Certificates, cert)
+		tlsc.InsecureSkipVerify = !tlsVerify
+		transport = &http.Transport{
+			TLSClientConfig: tlsc,
+		}
+	}
+
+	client, err := dockerclient.NewClient(dockerHost, dockerapi.DefaultVersion.String(), transport, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &rhelpush{client: client, dockerHost: dockerHost}, nil
+	return &rhelpush{client: client}, nil
 }
 
 var (
@@ -29,8 +48,7 @@ const (
 )
 
 type rhelpush struct {
-	client     *dockerclient.Client
-	dockerHost string
+	client *dockerclient.Client
 }
 
 func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
