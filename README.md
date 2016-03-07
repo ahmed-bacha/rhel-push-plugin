@@ -64,6 +64,7 @@ Given the plugin is enabled and `myregistry.com:5000` can be used as a test regi
   - if the image is RHEL based and qualified with `docker.io` -> disallow pushing
   - if the image is RHEL based and qualified with `myregistry.com:5000` -> allow pushing
   - if the image is RHEL based and unqualified -> disallow pushing
+
 License
 -
 MIT
