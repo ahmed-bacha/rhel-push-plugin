@@ -25,6 +25,11 @@ var (
 	pushRegExp = regexp.MustCompile(`/images/(.*)/push\?tag=(.*)$`)
 )
 
+const (
+	RHELVendorLabel = "Red Hat, Inc."
+	RHELNameLabel   = "rhel7/rhel"
+)
+
 type rhelpush struct {
 	client     *dockerclient.Client
 	dockerHost string
@@ -94,10 +99,18 @@ func (p *rhelpush) getAdditionalDockerRegistries() ([]string, error) {
 	return regs, nil
 }
 
-func (p *rhelpush) isRHELBased(image string) (bool, error) {
-	image, _, err := p.client.ImageInspectWithRaw(repoName, false)
-	if err != nil {
-		return false, err
+func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
+	for {
+		if repoName == "" {
+			return false, nil
+		}
+		image, _, err := p.client.ImageInspectWithRaw(repoName, false)
+		if err != nil {
+			return false, err
+		}
+		if image.Config.Labels["Vendor"] == RHELVendorLabel && image.Config.Labels["Name"] == RHELNameLabel {
+			return true, nil
+		}
+		repoName = image.Parent
 	}
-	_ = image
 }
