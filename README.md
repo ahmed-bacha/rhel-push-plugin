@@ -38,26 +38,36 @@ under `systemd/` (or installing via `make install`). This ensures the plugin get
 if it goes down for any reason.
 How to test
 -
-Ensure at least the systemd `socket` is active:
+Prerequisites (replace `runcom` with your own Docker Hub username):
+```
+$ sudo dnf install rhel-push-plugin
+$ sudo systemctl start rhel-push-plugin
+# edit /etc/sysconfig/docker and append --authorization-plugin=rhel-push-plugin to OPTIONS
+$ sudo systemctl restart docker
 
-TODO
-
+$ docker build -t runcom/testrhelbased - <<EOF
+FROM registry.access.redhat.com/rhel7
+EOF
+$ docker tag runcom/testrhelbased docker.io/runcom/testrhelbased
+$ docker pull busybox
+$ docker tag busybox runcom/busybox
+$ docker tag runcom/busybox docker.io/runcom/busybox
+$ docker login -u runcom
 ```
-$ sudo systemctl status docker-novolume-plugin.socket
-● docker-novolume-plugin.socket - Docker novolume plugin Socket for the API
-   Loaded: loaded (/usr/lib/systemd/system/docker-novolume-plugin.socket; enabled; vendor preset: disabled)
-   Active: active (running) since Wed 2016-02-10 14:42:55 CET; 4h 51min ago
-   Listen: /run/docker/plugins/docker-novolume-plugin.sock (Stream)
-
-Feb 10 14:42:55 fedora systemd[1]: Listening on Docker novolume plugin Socket for the API.
-Feb 10 14:42:55 fedora systemd[1]: Starting Docker novolume plugin Socket for the API.
+Without any `--add-regsitry` configured:
 ```
-Try to run a container with a self provisioned volume:
+$ docker push runcom/testrhelbased # blocked
+$ docker push docker.io/runcom/testrhelbased # blocked
+$ docker push runcom/busybox # works
+$ docker push docker.io/runcom/busybox # works
 ```
-$ docker run -v /test busybox
-docker: Error response from daemon: authorization denied by plugin docker-novolume-plugin: volumes are not allowed.
+With `--add-registry=yourownadditionalregistry:5000`:
 ```
-Watch it failing.
+$ docker push runcom/testrhelbased # works
+$ docker push docker.io/runcom/testrhelbased # blocked
+$ docker push runcom/busybox # works
+$ docker push docker.io/runcom/busybox # works
+```
 License
 -
 MIT
