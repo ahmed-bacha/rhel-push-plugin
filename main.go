@@ -26,7 +26,6 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	// TODO(runcom): parametrize this when the bin starts
 	h := authorization.NewHandler(rhelpush)
 
 	if err = h.ServeUnix("root", pluginSocket); err != nil {
