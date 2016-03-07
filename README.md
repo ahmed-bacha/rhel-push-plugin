@@ -3,7 +3,8 @@ Block RHEL push to docker.io
 _In order to use this plugin you must be running at least Docker 1.10 which
 has support for authorization plugins._
 
-TODO
+This plugin avoids any RHEL based image to be pushed to the default `docker.io` registry preventing
+users to violate the RH subscription agreement.
 
 Building
 -

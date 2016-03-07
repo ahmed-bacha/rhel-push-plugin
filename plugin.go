@@ -72,6 +72,8 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 					goto noallow
 				}
 			}
+			// this is the official docker binary case
+			goto noallow
 		}
 	}
 allow:
