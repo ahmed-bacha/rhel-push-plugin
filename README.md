@@ -41,6 +41,9 @@ How to test
 -
 Given the plugin is enabled and `myregistry.com:5000` can be used as a test registry:
 
+> Note: when pushing without a tag a check is performed on any image matching the image name provided.
+> If any of the images is RHEL based the plugin errors out and you should directly push with a tag.
+
 - case `docker/docker` daemon:
 
   - if the image is not RHEL based and qualified-> allow pushing
