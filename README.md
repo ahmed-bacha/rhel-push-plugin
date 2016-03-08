@@ -70,4 +70,4 @@ Given the plugin is enabled and `myregistry.com:5000` can be used as a test regi
 
 License
 -
-MIT
+GPLv2
