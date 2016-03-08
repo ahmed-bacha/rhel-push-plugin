@@ -2,7 +2,7 @@
 % Antonio Murdaca
 % MARCH 2016
 # NAME
-rhel-push-plugin - Blocks RHEL content push to docker.io
+rhel-push-plugin - Block Red Hat Enterprise Linux content being pushed to default registry
 
 # SYNOPSIS
 **rhel-push-plugin**
@@ -12,8 +12,13 @@ rhel-push-plugin - Blocks RHEL content push to docker.io
 
 # DESCRIPTION
 
-This plugin avoids any RHEL based image to be pushed to the default `docker.io` registry preventing
-users to violate the RH subscription agreement.
+Red Hat subscription agreement prevents users from posting of Red Hat based content to public registries.
+This plugin looks at the base image of any container image that is being pushed to the default registry,
+`docker.io`, and blocks the push, if the content uses a RHEL base image. Users can push RHEL content to
+their own private registries.  You can modify the docker service to support private registies by using
+the --add-registry docker daemon flag.  You can add this to the docker daemon command or by adding it to
+the OPTIONS configuation in /etc/sysconfig/docker
+
 
 # OPTIONS
 
