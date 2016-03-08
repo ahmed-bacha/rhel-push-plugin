@@ -44,8 +44,8 @@ var (
 )
 
 const (
-	RHELVendorLabel = "Red Hat, Inc."
-	RHELNameLabel   = "rhel7/rhel"
+	RHELVendorLabel     = "Red Hat, Inc."
+	RHELNameLabelPrefix = "rhel"
 )
 
 type rhelpush struct {
@@ -159,7 +159,7 @@ func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if image.Config.Labels["Vendor"] == RHELVendorLabel && image.Config.Labels["Name"] == RHELNameLabel {
+		if image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
 			return true, nil
 		}
 		repoName = image.Parent
