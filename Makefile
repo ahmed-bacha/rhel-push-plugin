@@ -25,3 +25,4 @@ install:
 
 clean:
 	rm -f rhel-push-plugin
+	rm -f rhel-push-plugin.8
