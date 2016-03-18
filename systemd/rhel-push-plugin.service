@@ -7,7 +7,7 @@ Requires=rhel-push-plugin.socket docker.service
 
 [Service]
 # might need to set flags...
-ExecStart=/usr/lib/docker/rhel-push-plugin
+ExecStart=/usr/libexec/docker/rhel-push-plugin
 
 [Install]
 WantedBy=multi-user.target
