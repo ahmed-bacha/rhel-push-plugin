@@ -13,9 +13,10 @@ const (
 )
 
 var (
-	flDockerHost = flag.String("host", defaultDockerHost, "Specifies the host where to contact the docker daemon")
-	flCertPath   = flag.String("cert-path", "", "Certificates path to connect to Docker (cert.pem, key.pem)")
-	flTLSVerify  = flag.Bool("tls-verify", false, "Whether to verify certificates or not")
+	flDockerHost   = flag.String("host", defaultDockerHost, "Specifies the host where to contact the docker daemon")
+	flCertPath     = flag.String("cert-path", "", "Certificates path to connect to Docker (cert.pem, key.pem)")
+	flTLSVerify    = flag.Bool("tls-verify", false, "Whether to verify certificates or not")
+	flPluginSocket = flag.String("plugin-sock", pluginSocket, "Specifies the plugin socket path")
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 
 	h := authorization.NewHandler(rhelpush)
 
-	if err := h.ServeUnix("root", pluginSocket); err != nil {
+	if err := h.ServeUnix("root", *flPluginSocket); err != nil {
 		logrus.Fatal(err)
 	}
 }
