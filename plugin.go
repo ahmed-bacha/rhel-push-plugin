@@ -11,7 +11,6 @@ import (
 	dockerapi "github.com/docker/docker/api"
 	"github.com/docker/docker/reference"
 	dockerclient "github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
 	"github.com/docker/go-plugins-helpers/authorization"
 )
 
@@ -58,30 +57,26 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		if len(res) < 3 {
 			return authorization.Response{Err: "unable to find repository name and reference"}
 		}
-
-		repoName := res[1]
-		tag := res[3]
-
-		if tag == "" {
-			imgListOptions := types.ImageListOptions{}
-			imgListOptions.MatchName = repoName
-			images, err := p.client.ImageList(imgListOptions)
-			if err != nil {
-				return authorization.Response{Err: err.Error()}
-			}
-			for _, img := range images {
-				rb, err := p.isRHELBased(img.ID)
-				if err != nil {
-					return authorization.Response{Err: err.Error()}
-				}
-				if rb {
-					return authorization.Response{Err: fmt.Sprintf("%s is RHEL based (refers to: %s), please push your image using a tag directly to avoid pushing the RHEL based image", img.ID, strings.Join(img.RepoTags, ", "))}
-				}
-			}
-			goto allow
+		var (
+			firstDocker bool
+			repoName    = res[1]
+			tag         = res[3]
+		)
+		registries, err := p.getAdditionalDockerRegistries()
+		if err != nil {
+			return authorization.Response{Err: err.Error()}
 		}
-
-		repoName = fmt.Sprintf("%s:%s", repoName, tag)
+		if len(registries) != 0 {
+			// We have a projectatomic/docker implementation: pushing without specifying a host name
+			// automatically uses the first just discovered registry configured with --add-registry
+			// If the first registry configured in the daemon is docker.io blocks.
+			if registries[0] == "docker.io" {
+				firstDocker = true
+			}
+		}
+		if tag != "" {
+			repoName = fmt.Sprintf("%s:%s", repoName, tag)
+		}
 		RHELBased, err := p.isRHELBased(repoName)
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
@@ -89,12 +84,10 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		if !RHELBased {
 			goto allow
 		}
-
 		// any direct push to docker.io/ with a qualified image is rejected
 		if strings.HasPrefix(repoName, "docker.io/") {
 			goto noallow
 		}
-
 		ref, err := reference.ParseNamed(repoName)
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
@@ -106,22 +99,7 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		//
 		// This `if` will match pushing *unqualified* images to the default registry
 		// with the projectatomic/docker codebase and the docker official binary.
-		if ref.Hostname() == "docker.io" {
-			registries, err := p.getAdditionalDockerRegistries()
-			if err != nil {
-				return authorization.Response{Err: err.Error()}
-			}
-			if len(registries) != 0 {
-				// We have a projectatomic/docker implementation: pushing without specifying a host name
-				// automatically uses the first just discovered registry configured with --add-registry
-				// If the first registry configured in the daemon is docker.io blocks.
-				if registries[0] == "docker.io" {
-					goto noallow
-				}
-				// otherwise let the user push rhel content to his first configured registry.
-				goto allow
-			}
-			// this is the official docker binary case
+		if ref.Hostname() == "docker.io" && firstDocker {
 			goto noallow
 		}
 	}
@@ -159,7 +137,7 @@ func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
+		if image.Config != nil && image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
 			return true, nil
 		}
 		repoName = image.Parent
