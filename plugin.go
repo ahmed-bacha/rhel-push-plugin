@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -53,7 +54,11 @@ type rhelpush struct {
 
 func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 	if req.RequestMethod == "POST" && pushRegExp.MatchString(req.RequestURI) {
-		res := pushRegExp.FindStringSubmatch(req.RequestURI)
+		decoded_url, err := url.QueryUnescape(req.RequestURI)
+		if err != nil {
+			return authorization.Response{Err: err.Error()}
+		}
+		res := pushRegExp.FindStringSubmatch(decoded_url)
 		if len(res) < 3 {
 			return authorization.Response{Err: "unable to find repository name and reference"}
 		}
