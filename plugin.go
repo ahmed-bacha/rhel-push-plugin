@@ -53,12 +53,12 @@ type rhelpush struct {
 }
 
 func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
-	if req.RequestMethod == "POST" && pushRegExp.MatchString(req.RequestURI) {
-		decoded_url, err := url.QueryUnescape(req.RequestURI)
-		if err != nil {
-			return authorization.Response{Err: err.Error()}
-		}
-		res := pushRegExp.FindStringSubmatch(decoded_url)
+	decodedURI, err := url.QueryUnescape(req.RequestURI)
+	if err != nil {
+		return authorization.Response{Err: err.Error()}
+	}
+	if req.RequestMethod == "POST" && pushRegExp.MatchString(decodedURI) {
+		res := pushRegExp.FindStringSubmatch(decodedURI)
 		if len(res) < 3 {
 			return authorization.Response{Err: "unable to find repository name and reference"}
 		}
@@ -78,6 +78,10 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 			if registries[0] == "docker.io" {
 				firstDocker = true
 			}
+		}
+		// docker/docker daemon case
+		if len(registries) == 0 {
+			firstDocker = true
 		}
 		if tag != "" {
 			repoName = fmt.Sprintf("%s:%s", repoName, tag)
