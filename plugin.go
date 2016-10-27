@@ -12,6 +12,7 @@ import (
 	dockerapi "github.com/docker/docker/api"
 	"github.com/docker/docker/reference"
 	dockerclient "github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 	"github.com/docker/go-plugins-helpers/authorization"
 )
 
@@ -138,17 +139,25 @@ func (p *rhelpush) getAdditionalDockerRegistries() ([]string, error) {
 }
 
 func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
-	for {
-		if repoName == "" {
-			return false, nil
-		}
-		image, _, err := p.client.ImageInspectWithRaw(repoName, false)
-		if err != nil {
-			return false, err
-		}
-		if image.Config != nil && image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
-			return true, nil
-		}
-		repoName = image.Parent
+	imgs, err := p.client.ImageList(types.ImageListOptions{MatchName: repoName})
+	if err != nil {
+		return false, err
 	}
+	for _, img := range imgs {
+		inspectID := img.ID
+		for {
+			if inspectID == "" {
+				break
+			}
+			image, _, err := p.client.ImageInspectWithRaw(inspectID, false)
+			if err != nil {
+				return false, err
+			}
+			if image.Config != nil && image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
+				return true, fmt.Errorf("%s is RHEL based, please push by tag", image.ID)
+			}
+			inspectID = image.Parent
+		}
+	}
+	return false, nil
 }
