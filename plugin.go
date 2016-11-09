@@ -91,12 +91,12 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		if err != nil {
 			return authorization.Response{Err: err.Error()}
 		}
-		if !RHELBased {
-			goto allow
-		}
 		// any direct push to docker.io/ with a qualified image is rejected
 		if strings.HasPrefix(repoName, "docker.io/") {
-			goto noallow
+			if RHELBased {
+				goto noallow
+			}
+			goto allow
 		}
 		ref, err := reference.ParseNamed(repoName)
 		if err != nil {
@@ -110,7 +110,10 @@ func (p *rhelpush) AuthZReq(req authorization.Request) authorization.Response {
 		// This `if` will match pushing *unqualified* images to the default registry
 		// with the projectatomic/docker codebase and the docker official binary.
 		if ref.Hostname() == "docker.io" && firstDocker {
-			goto noallow
+			if RHELBased {
+				goto noallow
+			}
+			goto allow
 		}
 	}
 allow:
@@ -154,7 +157,7 @@ func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
 				return false, err
 			}
 			if image.Config != nil && image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
-				return true, fmt.Errorf("%s is RHEL based, please push by tag", image.ID)
+				return true, nil
 			}
 			inspectID = image.Parent
 		}
