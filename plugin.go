@@ -154,7 +154,11 @@ func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
 			}
 			image, _, err := p.client.ImageInspectWithRaw(inspectID, false)
 			if err != nil {
-				return false, err
+				// probably a race between docker and plugins, sometime you get
+				// "layer does not exist" error here. See BZ1417242. Better skipping
+				// that for now I guess, and fix this in docker (?).
+				//return false, err
+				break
 			}
 			if image.Config != nil && image.Config.Labels["Vendor"] == RHELVendorLabel && strings.HasPrefix(image.Config.Labels["Name"], RHELNameLabelPrefix) {
 				return true, nil
