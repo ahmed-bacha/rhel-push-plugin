@@ -144,7 +144,11 @@ func (p *rhelpush) getAdditionalDockerRegistries() ([]string, error) {
 func (p *rhelpush) isRHELBased(repoName string) (bool, error) {
 	imgs, err := p.client.ImageList(types.ImageListOptions{MatchName: repoName})
 	if err != nil {
-		return false, err
+		// probably a race between docker and plugins, sometime you get
+		// "layer does not exist" error here. See BZ1417242. Better skipping
+		// that for now I guess, and fix this in docker (?).
+		//return false, err
+		return false, nil
 	}
 	for _, img := range imgs {
 		inspectID := img.ID
